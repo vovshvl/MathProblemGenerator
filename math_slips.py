@@ -13,8 +13,9 @@ two distinct generators:
    percentages, squares and cubes.  Each slip uses a fixed distribution
    of problem types to ensure fairness: two additions, two subtractions,
    two multiplications, one division, one percentage, one square and
-   one cube.  Difficulty levels from ``"easy"`` through ``"impossible"``
-   adjust number ranges and complexity.  The inclusion of perfect
+   one cube.  Difficulty levels track grade bands (``grade6``–``grade11``)
+   so each sheet matches what a student should comfortably solve in a
+   three‑minute warm‑up.  The inclusion of perfect
    squares (up to 25) and cubes (up to 10) is motivated by mental math
    recommendations – memorising squares up to 25 makes it much easier to
    mentally square larger numbers【561328014130912†L272-L278】, and knowing
@@ -24,8 +25,8 @@ two distinct generators:
    equations designed to improve equation solving speed.  The
    problems progress from one‑step equations (e.g. ``x + 3 = 7``) to
    two‑step equations and those with variables on both sides.  The
-   ``"impossible"`` level introduces multi‑step equations such as
-   ``3(x + 4) = 27``.  Solving linear equations requires moving
+   upper grades introduce multi‑step equations such as ``3(x + 4) = 27``.
+   Solving linear equations requires moving
    variable terms to one side and constants to the other【94001042632046†L94-L109】,
    so these practice slips encourage that skill.
 
@@ -39,9 +40,9 @@ Example usage (see ``__main__`` for more detail):
 
 >>> from math_slips import ArithmeticSlipGenerator, EquationSlipGenerator, SlipPDFBuilder
 >>> gen = ArithmeticSlipGenerator(seed=123)
->>> slips, answers = gen.generate_slips('medium', slips_per_page=10)
+>>> slips, answers = gen.generate_slips('grade8', slips_per_page=10)
 >>> builder = SlipPDFBuilder()
->>> builder.build_pdf(slips, answers, filename='arithmetic_medium.pdf', title='Arithmetic – Medium')
+>>> builder.build_pdf(slips, answers, filename='arithmetic_grade8.pdf', title='Arithmetic – Grade 8')
 
 This file can be run directly to generate a set of practice sheets for
 all difficulties and both generators.
@@ -109,54 +110,96 @@ class ArithmeticSlipGenerator:
         if self.seed is not None:
             random.seed(self.seed)
 
-        # Define numeric ranges for each operation and difficulty.
-        # The keys map difficulty names to tuples or lists used by
-        # ``_choose``; ranges are inclusive.
+        # Define numeric ranges for each operation aligned to school year bands
+        # (6th–11th grade).  The goal is that a slip should be solvable within a
+        # three‑minute warm‑up for the target grade level.
         self.ranges: Dict[str, Dict[str, Tuple[int, int] | List[int]]] = {
-            'easy': {
-                'addend': (10, 99),      # two‑digit addition
-                'subtrahend': (10, 99),   # two‑digit subtraction
-                'multiplicand': (10, 99), # two‑digit multiplication (× one‑digit)
+            'grade6': {
+                'addend': (10, 99),
+                'subtrahend': (10, 99),
+                'multiplicand': (6, 99),   # two‑digit × one‑digit
                 'multiplier': (2, 9),
-                'divisor': (2, 9),        # one‑digit divisors
-                'quotient': (2, 20),
+                'divisor': (2, 9),
+                'quotient': (2, 15),
                 'percent': [5, 10, 25, 50],
-                'square': (2, 12),        # squares up to 12²
-                'cube': (2, 5),           # cubes up to 5³
+                'square': (2, 10),
+                'cube': (2, 4),
             },
-            'medium': {
-                'addend': (100, 999),     # three‑digit addition
-                'subtrahend': (100, 999),
-                'multiplicand': (20, 99), # two‑digit × two‑digit
-                'multiplier': (10, 30),
-                'divisor': (2, 20),
-                'quotient': (10, 50),
-                'percent': [5, 10, 12, 15, 20, 25, 30],
-                'square': (13, 15),       # squares up to 15²
-                'cube': (6, 7),           # cubes up to 7³
+            'grade7': {
+                'addend': (50, 199),
+                'subtrahend': (50, 199),
+                'multiplicand': (10, 199),
+                'multiplier': (3, 12),
+                'divisor': (3, 12),
+                'quotient': (5, 25),
+                'percent': [5, 10, 15, 20, 25, 30, 50],
+                'square': (3, 12),
+                'cube': (2, 6),
             },
-            'hard': {
-                'addend': (100, 999),
-                'subtrahend': (100, 999),
-                'multiplicand': (100, 999), # three‑digit × two‑digit
-                'multiplier': (10, 50),
-                'divisor': (10, 50),
-                'quotient': (10, 99),
-                'percent': [7, 13, 17, 22, 35],
-                'square': (16, 20),       # squares up to 20²
-                'cube': (8, 9),           # cubes up to 9³
+            'grade8': {
+                'addend': (100, 499),
+                'subtrahend': (100, 499),
+                'multiplicand': (20, 299),  # two‑digit × two‑digit common
+                'multiplier': (5, 15),
+                'divisor': (5, 15),
+                'quotient': (10, 40),
+                'percent': [6, 8, 10, 12, 15, 18, 25, 33, 40],
+                'square': (4, 15),
+                'cube': (3, 7),
             },
-            'impossible': {
-                'addend': (1000, 9999),
-                'subtrahend': (1000, 9999),
-                'multiplicand': (100, 999), # three‑digit × two‑digit (large multiplier)
-                'multiplier': (20, 99),
-                'divisor': (20, 99),
-                'quotient': (10, 99),
-                'percent': list(range(1, 100)),
-                'square': (21, 25),       # squares up to 25²
-                'cube': (10, 10),         # cubes of 10³ only
+            'grade9': {
+                'addend': (200, 999),
+                'subtrahend': (200, 999),
+                'multiplicand': (50, 499),
+                'multiplier': (8, 20),
+                'divisor': (8, 20),
+                'quotient': (15, 60),
+                'percent': [7, 9, 11, 13, 17, 22, 35, 45],
+                'square': (8, 20),
+                'cube': (4, 8),
             },
+            'grade10': {
+                'addend': (500, 1999),
+                'subtrahend': (500, 1999),
+                'multiplicand': (80, 799),  # three‑digit × two‑digit
+                'multiplier': (12, 30),
+                'divisor': (12, 30),
+                'quotient': (20, 80),
+                'percent': [8, 12, 16, 20, 24, 30, 37, 42, 55],
+                'square': (12, 22),
+                'cube': (5, 9),
+            },
+            'grade11': {
+                'addend': (800, 4999),
+                'subtrahend': (800, 4999),
+                'multiplicand': (120, 999),
+                'multiplier': (15, 45),
+                'divisor': (15, 45),
+                'quotient': (30, 120),
+                'percent': list(range(6, 76, 7)),
+                'square': (15, 25),
+                'cube': (6, 10),
+            },
+        }
+
+        # Operation mixes gradually introduce more advanced questions as the
+        # grade increases.
+        self.operation_mix: Dict[str, List[str]] = {
+            'grade6': ['add'] * 2 + ['subtract'] * 2 + ['multiply'] * 2 + ['divide'] + ['percent'] + ['square'] + ['cube'],
+            'grade7': ['add'] * 2 + ['subtract'] * 2 + ['multiply'] * 2 + ['divide'] * 2 + ['square'] + ['percent'],
+            'grade8': ['add'] + ['subtract'] + ['multiply'] * 3 + ['divide'] * 2 + ['percent'] + ['square'] + ['cube'],
+            'grade9': ['add'] + ['subtract'] + ['multiply'] * 3 + ['divide'] * 2 + ['percent'] + ['square'] + ['cube'],
+            'grade10': ['add'] + ['subtract'] + ['multiply'] * 3 + ['divide'] * 2 + ['percent'] + ['square'] + ['cube'],
+            'grade11': ['add'] + ['subtract'] + ['multiply'] * 2 + ['divide'] * 2 + ['percent'] * 2 + ['square'] + ['cube'],
+        }
+
+        self.percent_base_ranges: Dict[str, Tuple[int, int]] = {
+            'grade6': (20, 200),
+            'grade7': (80, 400),
+            'grade8': (120, 800),
+            'grade9': (200, 1200),
+            'grade10': (300, 2000),
+            'grade11': (400, 5000),
         }
 
     def _generate_addition(self, difficulty: Difficulty) -> Question:
@@ -199,15 +242,9 @@ class ArithmeticSlipGenerator:
     def _generate_percentage(self, difficulty: Difficulty) -> Question:
         r = self.ranges[difficulty]
         percent = _choose(r['percent'])
-        # Choose a base number large enough to be interesting
-        if difficulty == 'easy':
-            base = random.randint(20, 200)
-        elif difficulty == 'medium':
-            base = random.randint(100, 999)
-        elif difficulty == 'hard':
-            base = random.randint(200, 2000)
-        else:  # impossible
-            base = random.randint(200, 5000)
+        # Choose a base number scaled to the grade band
+        base_low, base_high = self.percent_base_ranges[difficulty]
+        base = random.randint(base_low, base_high)
         question = f"{percent}% of {base} ="
         result = base * percent / 100
         # Round to two decimal places only for non‑integer results
@@ -235,16 +272,8 @@ class ArithmeticSlipGenerator:
         the list of answers in order.  The answers list is kept separate to
         facilitate answer page construction.
         """
-        # Fixed distribution for fairness; randomized order
-        ops = (
-            ['add'] * 1
-            + ['subtract'] * 1
-            + ['multiply'] * 2
-            + ['divide']*2
-            + ['percent']
-            + ['square']*2
-            + ['cube']
-        )
+        # Grade‑sensitive distribution; randomized order
+        ops = self.operation_mix[difficulty][:]
         random.shuffle(ops)
         slip: Slip = []
         answers: List[str] = []
@@ -272,7 +301,7 @@ class ArithmeticSlipGenerator:
     def generate_slips(self, difficulty: Difficulty, slips_per_page: int = 10) -> Tuple[List[Slip], List[List[str]]]:
         """Generate multiple slips for the specified difficulty.
 
-        :param difficulty: One of 'easy', 'medium', 'hard', 'impossible'
+        :param difficulty: One of 'grade6', 'grade7', 'grade8', 'grade9', 'grade10', 'grade11'
         :param slips_per_page: Number of slips to generate (default: 10)
         :returns: A tuple of list of slips and list of answer lists.
         """
@@ -290,7 +319,7 @@ class EquationSlipGenerator:
     """Generate slips containing algebraic equations of varying complexity.
 
     Each slip contains ten equations, and the mix of equation types depends
-    on the chosen difficulty.  The generator supports four categories of
+    on the chosen grade band.  The generator supports four categories of
     equations: ``one_step``, ``two_step``, ``both_sides`` and ``multi_step``.
     """
 
@@ -305,33 +334,45 @@ class EquationSlipGenerator:
     # error that dataclasses raise when mutable objects are used as
     # default field values.
     eq_ranges: ClassVar[Dict[str, Dict[str, Tuple[int, int]]]] = {
-        'easy': {
-            'coeff': (1, 10),
-            'const': (1, 10),
-            'x': (1, 10),
-        },
-        'medium': {
-            'coeff': (1, 12),
-            'const': (1, 20),
+        'grade6': {
+            'coeff': (1, 8),
+            'const': (1, 15),
             'x': (1, 20),
         },
-        'hard': {
-            'coeff': (1, 20),
-            'const': (1, 30),
+        'grade7': {
+            'coeff': (1, 10),
+            'const': (1, 20),
+            'x': (1, 25),
+        },
+        'grade8': {
+            'coeff': (1, 12),
+            'const': (1, 25),
             'x': (1, 30),
         },
-        'impossible': {
-            'coeff': (1, 30),
-            'const': (1, 50),
+        'grade9': {
+            'coeff': (1, 15),
+            'const': (1, 30),
+            'x': (1, 40),
+        },
+        'grade10': {
+            'coeff': (1, 18),
+            'const': (1, 40),
             'x': (1, 50),
+        },
+        'grade11': {
+            'coeff': (1, 25),
+            'const': (1, 50),
+            'x': (1, 60),
         },
     }
 
     distribution: ClassVar[Dict[str, List[str]]] = {
-        'easy': ['one_step'] * 10,
-        'medium': ['one_step'] * 2 + ['two_step'] * 4+['both_sides'] * 3+['multi_step'] * 1,
-        'hard': ['one_step'] * 3 + ['two_step'] * 5 + ['both_sides'] * 2,
-        'impossible': ['one_step'] * 2 + ['two_step'] * 4 + ['both_sides'] * 2 + ['multi_step'] * 2,
+        'grade6': ['one_step'] * 10,
+        'grade7': ['one_step'] * 6 + ['two_step'] * 4,
+        'grade8': ['one_step'] * 3 + ['two_step'] * 5 + ['both_sides'] * 2,
+        'grade9': ['one_step'] * 2 + ['two_step'] * 4 + ['both_sides'] * 3 + ['multi_step'],
+        'grade10': ['one_step'] * 2 + ['two_step'] * 3 + ['both_sides'] * 3 + ['multi_step'] * 2,
+        'grade11': ['one_step'] + ['two_step'] * 3 + ['both_sides'] * 3 + ['multi_step'] * 3,
     }
 
     def _gen_one_step(self, difficulty: Difficulty) -> Question:
@@ -684,9 +725,9 @@ def _generate_and_save(generator: Callable[[Difficulty, int], Tuple[List[Slip], 
 
 if __name__ == "__main__":
     # When executed directly, generate sample PDFs for both arithmetic
-    # practice and equation practice across all difficulty levels.  This
-    # creates eight PDF files in the working directory.
-    difficulties = ['easy', 'medium', 'hard', 'impossible']
+    # practice and equation practice across all grade-aligned difficulty
+    # levels.  This creates twelve PDF files in the working directory.
+    difficulties = ['grade6', 'grade7', 'grade8', 'grade9', 'grade10', 'grade11']
     # Arithmetic slips
     art_gen = ArithmeticSlipGenerator()
     eq_gen = EquationSlipGenerator()
